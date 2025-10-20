@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VaultAI Document Processor</title>
+    <style>
+      body { background:#f7f7fa; font-family: Arial, sans-serif; }
+      .container { max-width:650px; margin:30px auto; background:#fff; border-radius:8px; box-shadow:0 0 12px #bbc3c8; padding:40px;}
+      nav { margin-bottom:20px; }
+      .flash { margin-bottom:8px; padding:11px 16px; border-radius:4px; }
+      .flash-success { background:#e3f4e6; color:#204529;}
+      .flash-error { background:#fbeaea; color:#981c20;}
+      .result, .summary { margin-top:18px; padding:13px; border-radius:4px;}
+      .result { background:#e3f4e6; color:#204529;}
+      .summary { background:#f5faff; color:#12336d; border-left:4px solid #3564b3;}
+      details { margin-top:8px; font-size:.97em; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <nav>
+        {% if user %}
+            Hello {{ user.username }} ({{ user.role }}) |
+            <a href="{{ url_for('logout') }}">Logout</a>
+            {% if user.role == "admin" %}
+                | <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
+            {% endif %}
+        {% else %}
+            <a href="{{ url_for('login') }}">Login</a> |
+            <a href="{{ url_for('register') }}">Register</a>
+        {% endif %}
+    </nav>
+
+    <h1>VaultAI Document Processor</h1>
+    <p>Upload a file, convert, summarize, or ask questions!</p>
+
+    <ul style="padding:0;">
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+      <li class="flash flash-{{ category }}">{{ message }}</li>
+    {% endfor %}
+    </ul>
+
+    <form method="post" enctype="multipart/form-data">
+      <label>File: <input type="file" name="file" required></label><br><br>
+      <label>Convert to: 
+        <select name="convert_to">
+          <option value="">No conversion</option>
+          <option value="pdf">PDF</option>
+          <option value="docx">DOCX (Word)</option>
+          <option value="xlsx">XLSX (Excel)</option>
+        </select>
+      </label><br><br>
+      <label>
+        <input type="checkbox" name="summarize" checked> Generate AI Summary
+      </label><br><br>
+      <label>Ask your document a question:
+        <input type="text" name="question" value="{{ previous_question or '' }}" placeholder="e.g. What is the main point?">
+      </label><br><br>
+      <button type="submit">Process</button>
+    </form>
+
+    {% if uploaded_file %}
+      <div class="result">Uploaded: {{ uploaded_file }}</div>
+    {% endif %}
+
+    {% if converted_file %}
+      <div class="result">
+        <a href="{{ url_for('download_file', filename=converted_file) }}" style="color:#3564b3;">Download Converted File</a>
+      </div>
+    {% endif %}
+
+    {% if summary %}
+      <div class="summary"><b>AI Summary:</b> <br>{{ summary }}</div>
+    {% endif %}
+
+    {% if chat_answer %}
+      <div class="result">
+        <b>Answer:</b> {{ chat_answer }}
+        {% if answer_context %}
+          <details><summary>Source excerpt</summary>{{ answer_context }}</details>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <hr>
+    <h3>Recent Q&A</h3>
+    {% if recent_qas %}
+      <ul>
+      {% for qa in recent_qas %}
+        <li>
+          <b>Q:</b> {{ qa.question }} <br>
+          <b>A:</b> {{ qa.answer[:140] }}{% if qa.answer|length > 140 %}...{% endif %}
+        </li>
+      {% endfor %}
+      </ul>
+    {% else %}
+      <p>No recent questions.</p>
+    {% endif %}
+</div>
+</body>
+</html>

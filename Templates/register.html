@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VaultAI Register</title>
+    <style>
+      .flash-success { color: #204529; background: #e3f4e6; border-radius:4px; margin-bottom:6px; padding:9px 15px; }
+      .flash-error { color: #981c20; background: #fbeaea; border-radius:4px; margin-bottom:6px; padding:9px 15px; }
+      body { font-family: Arial, sans-serif; }
+    </style>
+</head>
+<body>
+    <h2>Register</h2>
+    <ul style="list-style:none; padding-left:0;">
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+        <li class="flash-{{ category }}">{{ message }}</li>
+    {% endfor %}
+    </ul>
+    <form method="post">
+        <label>Username:<br>
+            <input type="text" name="username" required></label><br>
+        <label>Email:<br>
+            <input type="email" name="email" required></label><br>
+        <label>Password:<br>
+            <input type="password" name="password" required></label><br>
+        <button type="submit">Register</button>
+    </form>
+    <p>Already registered? <a href="{{ url_for('login') }}">Login here.</a></p>
+</body>
+</html>

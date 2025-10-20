@@ -1,0 +1,11 @@
+flask
+pandas
+openpyxl
+transformers
+langchain
+python-dotenv
+pdfplumber
+werkzeug
+datasets
+streamlit
+torch
