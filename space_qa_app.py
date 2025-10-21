@@ -57,7 +57,7 @@ if st.session_state["role"] is None:
             st.success("Logged in as user")
         else:
             st.error("Invalid credentials")
-        st.experimental_rerun()
+        st.rerun()
     st.stop()
 
 if st.session_state["role"] == "admin":
