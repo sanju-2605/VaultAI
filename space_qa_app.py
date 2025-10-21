@@ -3,14 +3,22 @@ import pdfplumber
 from transformers import AutoTokenizer, AutoModelForQuestionAnswering, pipeline
 import torch
 
-st.title("SpaceQA Test with PDF & Summarization")
+st.title("SpaceQA: PDF, Summarization & Q&A")
 
 # Load QA model once
-tokenizer_qa = AutoTokenizer.from_pretrained("deepset/roberta-base-squad2")
-model_qa = AutoModelForQuestionAnswering.from_pretrained("deepset/roberta-base-squad2")
+@st.cache_resource
+def load_qa():
+    tokenizer = AutoTokenizer.from_pretrained("deepset/roberta-base-squad2")
+    model = AutoModelForQuestionAnswering.from_pretrained("deepset/roberta-base-squad2")
+    return tokenizer, model
 
-# Load summarization pipeline once
-summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
+tokenizer_qa, model_qa = load_qa()
+
+@st.cache_resource
+def load_summarizer():
+    return pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
+
+summarizer = load_summarizer()
 
 def get_answer(question, context):
     inputs = tokenizer_qa(question, context, return_tensors="pt")
@@ -26,40 +34,47 @@ def extract_text_from_pdf(pdf_file):
     with pdfplumber.open(pdf_file) as pdf:
         text = ""
         for page in pdf.pages:
-            text += page.extract_text()
+            content = page.extract_text()
+            if content:
+                text += content + "\n"
         return text
 
 if "history" not in st.session_state:
     st.session_state["history"] = []
 
-# Upload PDF
-pdf_file = st.file_uploader("Upload a PDF to convert its content", type=["pdf"])
+st.header("Upload a PDF")
+pdf_file = st.file_uploader("Choose a PDF", type=["pdf"], key="pdf_uploader")
 pdf_content = ""
 if pdf_file:
     pdf_content = extract_text_from_pdf(pdf_file)
-    st.text_area("Extracted PDF content:", pdf_content, height=200)
+    st.text_area("Extracted PDF text", pdf_content, height=200, key="pdf_content_area")
 
 # Summarize PDF
 if pdf_content:
     if st.button("Summarize PDF"):
-        with st.spinner("Generating summary..."):
-            summary = summarizer(pdf_content[:1000])[0]['summary_text']  # Limit length for demo
+        with st.spinner("Summarizing..."):
+            summary = summarizer(pdf_content[:1000])[0]['summary_text']
         st.write("Summary:", summary)
 
-question = st.text_input("Your question:", key="question_input")
-context_input_choice = st.radio("Use which context?", ["Manual", "Extracted PDF"])
+st.header("Ask a Question")
+
+context_input_choice = st.radio("Use which context?", ["Manual", "Extracted PDF"], key="context_choice")
 if context_input_choice == "Manual":
-    context = st.text_area("Your context passage:", key="context_input")
+    context = st.text_area("Context passage for QA", key="manual_context")
 else:
     context = pdf_content
 
+question = st.text_input("Your question:", key="qa_question")
+
 if question and context:
-    answer = get_answer(question, context)
+    with st.spinner("Answering..."):
+        answer = get_answer(question, context)
     st.session_state["history"].append((question, answer))
     st.write(f"Answer: {answer}")
 
-st.write("Previous Q&A:")
-for q, a in st.session_state["history"]:
-    st.write(f"Q: {q}")
-    st.write(f"A: {a}")
-    st.write("---")
+if st.session_state["history"]:
+    st.write("Previous Q&A:")
+    for q, a in st.session_state["history"]:
+        st.write(f"Q: {q}")
+        st.write(f"A: {a}")
+        st.write("---")
