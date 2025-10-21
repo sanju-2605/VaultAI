@@ -1,12 +1,16 @@
 import streamlit as st
-from transformers import AutoTokenizer, AutoModelForQuestionAnswering
+import pdfplumber
+from transformers import AutoTokenizer, AutoModelForQuestionAnswering, pipeline
 import torch
 
-st.title("SpaceQA Test")
+st.title("SpaceQA Test with PDF & Summarization")
 
-# Load model once
+# Load QA model once
 tokenizer_qa = AutoTokenizer.from_pretrained("deepset/roberta-base-squad2")
 model_qa = AutoModelForQuestionAnswering.from_pretrained("deepset/roberta-base-squad2")
+
+# Load summarization pipeline once
+summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
 
 def get_answer(question, context):
     inputs = tokenizer_qa(question, context, return_tensors="pt")
@@ -18,12 +22,36 @@ def get_answer(question, context):
     answer = tokenizer_qa.decode(answer_ids, skip_special_tokens=True)
     return answer
 
-# This ensures chat history is saved across runs
+def extract_text_from_pdf(pdf_file):
+    with pdfplumber.open(pdf_file) as pdf:
+        text = ""
+        for page in pdf.pages:
+            text += page.extract_text()
+        return text
+
 if "history" not in st.session_state:
     st.session_state["history"] = []
 
+# Upload PDF
+pdf_file = st.file_uploader("Upload a PDF to convert its content", type=["pdf"])
+pdf_content = ""
+if pdf_file:
+    pdf_content = extract_text_from_pdf(pdf_file)
+    st.text_area("Extracted PDF content:", pdf_content, height=200)
+
+# Summarize PDF
+if pdf_content:
+    if st.button("Summarize PDF"):
+        with st.spinner("Generating summary..."):
+            summary = summarizer(pdf_content[:1000])[0]['summary_text']  # Limit length for demo
+        st.write("Summary:", summary)
+
 question = st.text_input("Your question:", key="question_input")
-context = st.text_area("Your context passage:", key="context_input")
+context_input_choice = st.radio("Use which context?", ["Manual", "Extracted PDF"])
+if context_input_choice == "Manual":
+    context = st.text_area("Your context passage:", key="context_input")
+else:
+    context = pdf_content
 
 if question and context:
     answer = get_answer(question, context)
