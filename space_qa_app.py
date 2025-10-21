@@ -5,41 +5,55 @@ import torch
 st.markdown("""
 <style>
 body {
-    background: linear-gradient(135deg, #0a2337 0%, #1e0859 100%);
+    background: linear-gradient(135deg, #E6E6FA 0%, #D8BFD8 100%); /* Lavender gradient */
     color: #fafbfc;
 }
+
 .stApp {
-    background: linear-gradient(135deg, #0a2337 0%, #1e0859 100%);
+    background: linear-gradient(135deg, #E6E6FA 0%, #D8BFD8 100%); /* Lavender gradient */
 }
+
 h1, h2, h3, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
-    color: #80ffc8 !important;
+    color: #6e36b6 !important; /* A purple shade for headings */
     font-family: 'Orbitron', Arial, sans-serif;
 }
+
 .stTextInput, .stTextArea, .stFileUploader, .stButton>button {
-    background: rgba(30, 8, 89, 0.3);
-    color: #fafbfc;
+    background: #fff;
     border-radius: 1em;
-    border: 1.5px solid #3980fa;
+    border: 1.5px solid #e6e6fa;
     font-family: 'Orbitron', Arial, sans-serif;
 }
-/* --- >>> Add these lines <<< --- */
+
 .stTextInput input, .stTextArea textarea {
-    color: #fff !important;
-    background: rgba(30, 8, 89, 0.3) !important;
+    background: #fff !important;
+    color: #000 !important;
 }
+
+.stTextInput input::placeholder, .stTextArea textarea::placeholder {
+    color: #6e6e6e !important;
+    opacity: 1 !important;
+}
+
+label, .streamlit-expanderHeader, .stRadio label, .stSelectbox label, .stTextInput label {
+    color: #6e36b6 !important;
+}
+
 .stButton>button {
-    background: linear-gradient(90deg, #3980fa 0%, #310084 100%);
-    color: #80ffc8;
+    background: linear-gradient(90deg, #c8a2c8 0%, #b39ddb 100%);
+    color: #6e36b6;
     border-radius: 1em;
     font-family: 'Orbitron', Arial, sans-serif;
 }
+
 .stRadio>div>label {
-    color: #fafbfc !important;
+    color: #6e36b6 !important;
     font-family: 'Orbitron', Arial, sans-serif;
 }
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
 """, unsafe_allow_html=True)
+
 st.title("VaultAI: Your Secure Chatbot")
 
 # ---- RBAC Login ----
