@@ -47,24 +47,28 @@ pdf_file = st.file_uploader("Choose a PDF", type=["pdf"], key="pdf_uploader")
 pdf_content = ""
 if pdf_file:
     pdf_content = extract_text_from_pdf(pdf_file)
-    st.text_area("Extracted PDF text", pdf_content, height=200, key="pdf_content_area")
 
-# Summarize PDF
+    # Only show extracted content when PDF present, disabled for input
+    st.text_area("Extracted PDF text", pdf_content, height=200, key="pdf_content_area", disabled=True)
+
+# Summarize PDF (button and display block only if PDF loaded)
 if pdf_content:
-    if st.button("Summarize PDF"):
+    if st.button("Summarize PDF", key="summarize_btn"):
         with st.spinner("Summarizing..."):
             summary = summarizer(pdf_content[:1000])[0]['summary_text']
         st.write("Summary:", summary)
 
 st.header("Ask a Question")
 
+# Context selection
 context_input_choice = st.radio("Use which context?", ["Manual", "Extracted PDF"], key="context_choice_radio")
 if context_input_choice == "Manual":
     context = st.text_area("Context passage for QA", key="manual_context_area")
 else:
     context = pdf_content
 
-question = st.text_input("Your question:", key="qa_question_input")
+# Only ONE text_input for question, always with the same key
+question = st.text_input("Your question:", key="unique_qa_question")
 
 if question and context:
     with st.spinner("Answering..."):
