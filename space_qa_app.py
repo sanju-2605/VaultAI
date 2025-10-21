@@ -3,7 +3,6 @@ import pdfplumber
 from transformers import AutoTokenizer, AutoModelForQuestionAnswering, pipeline
 import torch
 
-# ---- Space Theme CSS ----
 st.markdown("""
 <style>
 body {
@@ -38,26 +37,26 @@ h1, h2, h3, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
 """, unsafe_allow_html=True)
 
-st.title("🚀VaultAI: Your secure Chatbot")
+st.title("🚀 SpaceQA: Your Gemini Chatbot")
 
-# ---- RBAC Login ----
+# RBAC Login block (all keys unique to login)
 if "role" not in st.session_state:
     st.session_state["role"] = None
-
 if st.session_state["role"] is None:
     st.subheader("Login for RBAC")
-    username = st.text_input("Username", key="login_user")
-    password = st.text_input("Password", type="password", key="login_pass")
-    if st.button("Login", key="login_btn"):
-        if username == "admin" and password == "adminpass":
+    login_username = st.text_input("Username", key="login_username_input")
+    login_password = st.text_input("Password", type="password", key="login_password_input")
+    if st.button("Login", key="login_button"):
+        if login_username == "admin" and login_password == "adminpass":
             st.session_state["role"] = "admin"
             st.success("Logged in as admin")
-        elif username == "user" and password == "userpass":
+            st.rerun()
+        elif login_username == "user" and login_password == "userpass":
             st.session_state["role"] = "user"
             st.success("Logged in as user")
+            st.rerun()
         else:
             st.error("Invalid credentials")
-        st.rerun()
     st.stop()
 
 if st.session_state["role"] == "admin":
@@ -65,7 +64,6 @@ if st.session_state["role"] == "admin":
 else:
     st.info("You have user access (summarize, ask questions, view history)")
 
-# ---- Model Loading ----
 @st.cache_resource
 def load_qa():
     tokenizer = AutoTokenizer.from_pretrained("deepset/roberta-base-squad2")
@@ -97,35 +95,30 @@ def extract_text_from_pdf(pdf_file):
                 text += content + "\n"
         return text
 
-# ---- Session State for History ----
 if "history" not in st.session_state:
     st.session_state["history"] = []
 
-# ---- PDF Upload ----
 st.header("Upload a PDF")
-pdf_file = st.file_uploader("Choose a PDF", type=["pdf"], key="pdf_uploader")
+pdf_file = st.file_uploader("Choose a PDF", type=["pdf"], key="pdf_file_uploader")
 pdf_content = ""
 if pdf_file:
     pdf_content = extract_text_from_pdf(pdf_file)
-    st.text_area("Extracted PDF text", pdf_content, height=200, key="pdf_content_area", disabled=True)
+    st.text_area("Extracted PDF text", pdf_content, height=200, key="pdf_extracted_text", disabled=True)
 
-# ---- PDF Summarization ----
 if pdf_content:
-    if st.button("Summarize PDF", key="summarize_btn"):
+    if st.button("Summarize PDF", key="pdf_summarize_button"):
         with st.spinner("Summarizing..."):
             summary = summarizer(pdf_content[:1000])[0]['summary_text']
         st.write("Summary:", summary)
 
-# ---- QA Interface ----
 st.header("Ask a Question")
-context_input_choice = st.radio("Use which context?", ["Manual", "Extracted PDF"], key="context_choice_radio")
-if context_input_choice == "Manual":
-    context = st.text_area("Context passage for QA", key="manual_context_area")
+context_choice = st.radio("Use which context?", ["Manual", "Extracted PDF"], key="question_context_choice")
+if context_choice == "Manual":
+    context = st.text_area("Context passage for QA", key="qa_manual_context_input")
 else:
     context = pdf_content
 
-question = st.text_input("Your question:", key="unique_qa_question")
-
+question = st.text_input("Your question:", key="qa_question_input")
 if question and context:
     with st.spinner("Answering..."):
         answer = get_answer(question, context)
@@ -139,9 +132,8 @@ if st.session_state["history"]:
         st.write(f"A: {a}")
         st.write("---")
 
-# ---- Admin Features Example ----
 if st.session_state["role"] == "admin":
     st.subheader("Admin Only Tools")
-    if st.button("Clear Q&A History", key="clear_history"):
+    if st.button("Clear Q&A History", key="admin_clear_history_btn"):
         st.session_state["history"].clear()
         st.success("History cleared!")
