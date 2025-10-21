@@ -38,7 +38,7 @@ h1, h2, h3, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
 """, unsafe_allow_html=True)
 
-st.title("🚀 SpaceQA: Your Gemini Chatbot")
+st.title("🚀VaultAI: Your secure Chatbot")
 
 # ---- RBAC Login ----
 if "role" not in st.session_state:
