@@ -2,7 +2,6 @@ import streamlit as st
 import pdfplumber
 from transformers import AutoTokenizer, AutoModelForQuestionAnswering, pipeline
 import torch
-
 st.markdown("""
 <style>
 body {
@@ -23,6 +22,11 @@ h1, h2, h3, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
     border: 1.5px solid #3980fa;
     font-family: 'Orbitron', Arial, sans-serif;
 }
+/* --- >>> Add these lines <<< --- */
+.stTextInput input, .stTextArea textarea {
+    color: #fff !important;
+    background: rgba(30, 8, 89, 0.3) !important;
+}
 .stButton>button {
     background: linear-gradient(90deg, #3980fa 0%, #310084 100%);
     color: #80ffc8;
@@ -36,33 +40,36 @@ h1, h2, h3, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
 """, unsafe_allow_html=True)
+st.title("VaultAI: Your Secure Chatbot")
 
-st.title("🚀 SpaceQA: Your Gemini Chatbot")
-
-# RBAC Login block (all keys unique to login)
+# ---- RBAC Login ----
 if "role" not in st.session_state:
     st.session_state["role"] = None
+
 if st.session_state["role"] is None:
-    st.subheader("Login for RBAC")
-    login_username = st.text_input("Username", key="login_username_input")
-    login_password = st.text_input("Password", type="password", key="login_password_input")
-    if st.button("Login", key="login_button"):
-        if login_username == "admin" and login_password == "adminpass":
+    st.subheader("🔐 Login to SpaceQA")
+    username = st.text_input("Username", key="rbac_username_input")
+    password = st.text_input("Password", type="password", key="rbac_password_input")
+
+    if st.button("Login", key="rbac_login_button"):
+        if username.strip().lower() == "admin" and password == "adminpass":
             st.session_state["role"] = "admin"
-            st.success("Logged in as admin")
+            st.success("✅ Logged in as Admin")
             st.rerun()
-        elif login_username == "user" and login_password == "userpass":
-            st.session_state["role"] = "user"
-            st.success("Logged in as user")
+        elif username.strip().lower() == "employee" and password == "employeepass":
+            st.session_state["role"] = "employee"
+            st.success("✅ Logged in as Employee")
             st.rerun()
         else:
-            st.error("Invalid credentials")
+            st.error("🚫 Invalid credentials. Try again.")
+
     st.stop()
 
+# ---- Role-specific messages ----
 if st.session_state["role"] == "admin":
-    st.info("You have full (admin) access!")
-else:
-    st.info("You have user access (summarize, ask questions, view history)")
+    st.info("🧠 You are logged in as an Admin. You have full access.")
+elif st.session_state["role"] == "employee":
+    st.info("👨‍💻 You are logged in as an Employee. You can upload PDFs, summarize, and ask questions.")
 
 @st.cache_resource
 def load_qa():
