@@ -58,13 +58,13 @@ if pdf_content:
 
 st.header("Ask a Question")
 
-context_input_choice = st.radio("Use which context?", ["Manual", "Extracted PDF"], key="context_choice")
+context_input_choice = st.radio("Use which context?", ["Manual", "Extracted PDF"], key="context_choice_radio")
 if context_input_choice == "Manual":
-    context = st.text_area("Context passage for QA", key="manual_context")
+    context = st.text_area("Context passage for QA", key="manual_context_area")
 else:
     context = pdf_content
 
-question = st.text_input("Your question:", key="qa_question")
+question = st.text_input("Your question:", key="qa_question_input")
 
 if question and context:
     with st.spinner("Answering..."):
