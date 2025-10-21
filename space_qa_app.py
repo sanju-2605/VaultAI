@@ -1,15 +1,4 @@
 import streamlit as st
-
-st.title("SpaceQA Test")
-
-question = st.text_input("Your question:")
-context = st.text_area("Your context passage:")
-
-if question and context:
-    st.write(f"Q: {question}")
-    st.write(f"Context: {context}")
-
-import streamlit as st
 from transformers import AutoTokenizer, AutoModelForQuestionAnswering
 import torch
 
@@ -29,8 +18,9 @@ def get_answer(question, context):
     answer = tokenizer_qa.decode(answer_ids, skip_special_tokens=True)
     return answer
 
-question = st.text_input("Your question:")
-context = st.text_area("Your context passage:")
+# The key argument ensures no DuplicateElementId errors
+question = st.text_input("Your question:", key="question_input")
+context = st.text_area("Your context passage:", key="context_input")
 
 if question and context:
     answer = get_answer(question, context)
