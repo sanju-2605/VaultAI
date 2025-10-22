@@ -2,50 +2,53 @@ import streamlit as st
 import pdfplumber
 from transformers import AutoTokenizer, AutoModelForQuestionAnswering, pipeline
 import torch
+
+# --- User Storage ---
+if "USERS" not in st.session_state:
+    st.session_state["USERS"] = {
+        "admin": {"password": "adminpass", "role": "admin"}
+    }
+
+if "role" not in st.session_state:
+    st.session_state["role"] = None
+
+# --- CSS ---
 st.markdown("""
 <style>
 body {
-    background: linear-gradient(135deg, #E6E6FA 0%, #D8BFD8 100%); /* Lavender gradient */
+    background: linear-gradient(135deg, #E6E6FA 0%, #D8BFD8 100%);
     color: #fafbfc;
 }
-
 .stApp {
-    background: linear-gradient(135deg, #E6E6FA 0%, #D8BFD8 100%); /* Lavender gradient */
+    background: linear-gradient(135deg, #E6E6FA 0%, #D8BFD8 100%);
 }
-
 h1, h2, h3, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
-    color: #6e36b6 !important; /* A purple shade for headings */
+    color: #6e36b6 !important;
     font-family: 'Orbitron', Arial, sans-serif;
 }
-
 .stTextInput, .stTextArea, .stFileUploader, .stButton>button {
     background: #fff;
     border-radius: 1em;
     border: 1.5px solid #e6e6fa;
     font-family: 'Orbitron', Arial, sans-serif;
 }
-
 .stTextInput input, .stTextArea textarea {
     background: #fff !important;
     color: #000 !important;
 }
-
 .stTextInput input::placeholder, .stTextArea textarea::placeholder {
     color: #6e6e6e !important;
     opacity: 1 !important;
 }
-
 label, .streamlit-expanderHeader, .stRadio label, .stSelectbox label, .stTextInput label {
     color: #6e36b6 !important;
 }
-
 .stButton>button {
     background: linear-gradient(90deg, #c8a2c8 0%, #b39ddb 100%);
     color: #6e36b6;
     border-radius: 1em;
     font-family: 'Orbitron', Arial, sans-serif;
 }
-
 .stRadio>div>label {
     color: #6e36b6 !important;
     font-family: 'Orbitron', Arial, sans-serif;
@@ -56,35 +59,48 @@ label, .streamlit-expanderHeader, .stRadio label, .stSelectbox label, .stTextInp
 
 st.title("VaultAI: Your Secure Chatbot")
 
-# ---- RBAC Login ----
-if "role" not in st.session_state:
-    st.session_state["role"] = None
+# --- Auth Interface ---
+page = st.sidebar.radio("Choose Action", ["Login", "Register"], key="login_or_register_radio")
 
 if st.session_state["role"] is None:
-    st.subheader("🔐 Login to SpaceQA")
-    username = st.text_input("Username", key="rbac_username_input")
-    password = st.text_input("Password", type="password", key="rbac_password_input")
+    if page == "Register":
+        st.header("Register New User")
+        new_user = st.text_input("New Username", key="reg_username")
+        new_pwd = st.text_input("Choose Password", type="password", key="reg_password")
+        new_role = st.selectbox("Register as", ["employee", "admin"], key="reg_role")
+        if st.button("Register", key="reg_submit"):
+            if new_user in st.session_state["USERS"]:
+                st.error("Username already exists!")
+            elif not new_user or not new_pwd:
+                st.error("Please fill all fields.")
+            else:
+                st.session_state["USERS"][new_user] = {
+                    "password": new_pwd,
+                    "role": new_role
+                }
+                st.success(f"Registered {new_user} as {new_role}. Please switch to Login to proceed.")
+        st.stop()
+    elif page == "Login":
+        st.header("🔐 Login to VaultAI")
+        username = st.text_input("Username", key="login_username")
+        password = st.text_input("Password", type="password", key="login_password")
+        if st.button("Login", key="login_submit"):
+            users = st.session_state["USERS"]
+            if username in users and users[username]["password"] == password:
+                st.session_state["role"] = users[username]["role"]
+                st.success(f"Logged in as {username} ({users[username]['role']})")
+                st.rerun()
+            else:
+                st.error("Invalid credentials.")
+        st.stop()
 
-    if st.button("Login", key="rbac_login_button"):
-        if username.strip().lower() == "admin" and password == "adminpass":
-            st.session_state["role"] = "admin"
-            st.success("✅ Logged in as Admin")
-            st.rerun()
-        elif username.strip().lower() == "employee" and password == "employeepass":
-            st.session_state["role"] = "employee"
-            st.success("✅ Logged in as Employee")
-            st.rerun()
-        else:
-            st.error("🚫 Invalid credentials. Try again.")
-
-    st.stop()
-
-# ---- Role-specific messages ----
+# --- Role-specific messages ---
 if st.session_state["role"] == "admin":
     st.info("🧠 You are logged in as an Admin. You have full access.")
 elif st.session_state["role"] == "employee":
     st.info("👨‍💻 You are logged in as an Employee. You can upload PDFs, summarize, and ask questions.")
 
+# --- Model loaders ---
 @st.cache_resource
 def load_qa():
     tokenizer = AutoTokenizer.from_pretrained("deepset/roberta-base-squad2")
@@ -97,12 +113,13 @@ def load_summarizer():
     return pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
 summarizer = load_summarizer()
 
+# --- Q&A ---
 def get_answer(question, context):
     max_context_length = 500
     context = context[:max_context_length]
     max_question_length = 100
     question = question[:max_question_length]
-    inputs = tokenizer_qa(question, context, return_tensors="pt")
+    inputs = tokenizer_qa(question, context, return_tensors="pt", truncation=True, max_length=512)
     outputs = model_qa(**inputs)
     start_index = torch.argmax(outputs.start_logits)
     end_index = torch.argmax(outputs.end_logits)
@@ -111,6 +128,7 @@ def get_answer(question, context):
     answer = tokenizer_qa.decode(answer_ids, skip_special_tokens=True)
     return answer
 
+# --- PDF extract ---
 def extract_text_from_pdf(pdf_file):
     with pdfplumber.open(pdf_file) as pdf:
         text = ""
@@ -120,6 +138,7 @@ def extract_text_from_pdf(pdf_file):
                 text += content + "\n"
         return text
 
+# --- Q&A session history ---
 if "history" not in st.session_state:
     st.session_state["history"] = []
 
