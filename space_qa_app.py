@@ -4,6 +4,8 @@ from transformers import AutoTokenizer, AutoModelForQuestionAnswering, pipeline
 import torch
 from pdf2image import convert_from_path
 import pytesseract
+# Point pytesseract directly to your installation
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 import tempfile
 import os
 from modules.pdf_tools import pdf_to_excel, pdf_to_docx
