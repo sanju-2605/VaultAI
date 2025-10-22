@@ -6,8 +6,7 @@ from pdf2image import convert_from_path
 import pytesseract
 import tempfile
 import os
-from pdf_tools import pdf_to_excel, pdf_to_docx   # File conversion helpers
-
+from modules.pdf_tools import pdf_to_excel, pdf_to_docx
 
 # --- User Storage ---
 if "USERS" not in st.session_state:
