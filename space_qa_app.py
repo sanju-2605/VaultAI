@@ -157,7 +157,10 @@ def extract_text_from_pdf(pdf_file):
             temp_path = "temp_pdf_input.pdf"
             with open(temp_path, "wb") as f:
                 f.write(pdf_file.read())
-            images = convert_from_path(temp_path)
+            images = convert_from_path(
+              temp_path,
+              poppler_path=r"C:\poppler\poppler-24.08.0\Library\bin"
+            )
             for img in images:
                 text += pytesseract.image_to_string(img) + "\n"
             os.remove(temp_path)
