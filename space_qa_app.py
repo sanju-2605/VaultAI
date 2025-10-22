@@ -2,11 +2,14 @@ import streamlit as st
 import pdfplumber
 from transformers import AutoTokenizer, AutoModelForQuestionAnswering, pipeline
 import torch
+from pdf2image import convert_from_path
+import pytesseract
+import os
 
 # --- User Storage ---
 if "USERS" not in st.session_state:
     st.session_state["USERS"] = {
-        "admin": {"password": "adminpass", "role": "admin"}
+        "admin": {"password": "adminpass", "role": "admin"}  # Default admin
     }
 
 if "role" not in st.session_state:
@@ -36,6 +39,10 @@ h1, h2, h3, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
     background: #fff !important;
     color: #000 !important;
 }
+textarea[aria-label="Extracted PDF text"] {
+    color: #000 !important;
+    background: #fff !important;
+}
 .stTextInput input::placeholder, .stTextArea textarea::placeholder {
     color: #6e6e6e !important;
     opacity: 1 !important;
@@ -49,6 +56,10 @@ label, .streamlit-expanderHeader, .stRadio label, .stSelectbox label, .stTextInp
     border-radius: 1em;
     font-family: 'Orbitron', Arial, sans-serif;
 }
+.stAlert-success {
+    background: #c8a2c8;
+    color: #ffffff !important;
+}
 .stRadio>div>label {
     color: #6e36b6 !important;
     font-family: 'Orbitron', Arial, sans-serif;
@@ -57,11 +68,13 @@ label, .streamlit-expanderHeader, .stRadio label, .stSelectbox label, .stTextInp
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
 """, unsafe_allow_html=True)
 
+# --- Page Title ---
 st.title("VaultAI: Your Secure Chatbot")
 
-# --- Auth Interface ---
+# --- Sidebar Auth ---
 page = st.sidebar.radio("Choose Action", ["Login", "Register"], key="login_or_register_radio")
 
+# --- Registration ---
 if st.session_state["role"] is None:
     if page == "Register":
         st.header("Register New User")
@@ -80,6 +93,7 @@ if st.session_state["role"] is None:
                 }
                 st.success(f"Registered {new_user} as {new_role}. Please switch to Login to proceed.")
         st.stop()
+
     elif page == "Login":
         st.header("🔐 Login to VaultAI")
         username = st.text_input("Username", key="login_username")
@@ -94,13 +108,13 @@ if st.session_state["role"] is None:
                 st.error("Invalid credentials.")
         st.stop()
 
-# --- Role-specific messages ---
+# --- Role Messages ---
 if st.session_state["role"] == "admin":
     st.info("🧠 You are logged in as an Admin. You have full access.")
 elif st.session_state["role"] == "employee":
     st.info("👨‍💻 You are logged in as an Employee. You can upload PDFs, summarize, and ask questions.")
 
-# --- Model loaders ---
+# --- Load Models ---
 @st.cache_resource
 def load_qa():
     tokenizer = AutoTokenizer.from_pretrained("deepset/roberta-base-squad2")
@@ -113,7 +127,7 @@ def load_summarizer():
     return pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
 summarizer = load_summarizer()
 
-# --- Q&A ---
+# --- Q&A Handler ---
 def get_answer(question, context):
     max_context_length = 500
     context = context[:max_context_length]
@@ -128,17 +142,30 @@ def get_answer(question, context):
     answer = tokenizer_qa.decode(answer_ids, skip_special_tokens=True)
     return answer
 
-# --- PDF extract ---
+# --- OCR + PDF Extraction ---
 def extract_text_from_pdf(pdf_file):
-    with pdfplumber.open(pdf_file) as pdf:
-        text = ""
-        for page in pdf.pages:
-            content = page.extract_text()
-            if content:
-                text += content + "\n"
-        return text
+    text = ""
+    try:
+        with pdfplumber.open(pdf_file) as pdf:
+            for page in pdf.pages:
+                content = page.extract_text()
+                if content:
+                    text += content + "\n"
+        # Fallback to OCR if no text found
+        if not text.strip():
+            st.info("No text layer detected, using OCR...")
+            temp_path = "temp_pdf_input.pdf"
+            with open(temp_path, "wb") as f:
+                f.write(pdf_file.read())
+            images = convert_from_path(temp_path)
+            for img in images:
+                text += pytesseract.image_to_string(img) + "\n"
+            os.remove(temp_path)
+    except Exception as e:
+        st.error(f"OCR extraction error: {str(e)}")
+    return text
 
-# --- Q&A session history ---
+# --- Q&A and PDF Handling ---
 if "history" not in st.session_state:
     st.session_state["history"] = []
 
