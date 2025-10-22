@@ -98,6 +98,10 @@ def load_summarizer():
 summarizer = load_summarizer()
 
 def get_answer(question, context):
+    max_context_length = 500
+    context = context[:max_context_length]
+    max_question_length = 100
+    question = question[:max_question_length]
     inputs = tokenizer_qa(question, context, return_tensors="pt")
     outputs = model_qa(**inputs)
     start_index = torch.argmax(outputs.start_logits)
